@@ -17,10 +17,10 @@ func Run(model config.ModelConfig) (archivePath string, err error) {
 
 	_, err = helper.Exec("tar", opts...)
 	if err == nil {
+		logger.Info("------------ Packaging Complete! -------------")
 		archivePath = filePath
 		return
 	}
-	logger.Info("------------ Packaging Complete! -------------")
 	return
 }
 
