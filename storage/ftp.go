@@ -5,12 +5,14 @@ import (
 	"path"
 
 	"github.com/syaiful6/payung/helper"
+	"github.com/thatique/awan/verr"
 
 	// "crypto/tls"
 	"time"
 
 	"github.com/secsy/goftp"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // FTP storage
@@ -59,7 +61,7 @@ func (ctx *FTP) close() {
 	ctx.client.Close()
 }
 
-func (ctx *FTP) upload(fileKey string) (err error) {
+func (ctx *FTP) upload(backupPackage *packager.Package) (err error) {
 	logger.Info("-> Uploading...")
 	_, err = ctx.client.Stat(ctx.path)
 	if os.IsNotExist(err) {
@@ -68,24 +70,62 @@ func (ctx *FTP) upload(fileKey string) (err error) {
 		}
 	}
 
-	file, err := os.Open(ctx.archivePath)
-	if err != nil {
-		return err
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
+	_, err = ctx.client.Stat(remotePath)
+	if os.IsNotExist(err) {
+		if _, err := ctx.client.Mkdir(remotePath); err != nil {
+			return err
+		}
 	}
-	defer file.Close()
 
-	remotePath := path.Join(ctx.path, fileKey)
-	err = ctx.client.Store(remotePath, file)
-	if err != nil {
-		return err
+	fileNames := backupPackage.FileNames()
+	// close files
+	var files []*os.File
+	defer func() {
+		for i := range files {
+			files[i].Close()
+		}
+	}()
+
+	for i := range fileNames {
+		file, err := os.Open(path.Join(ctx.model.TempPath, fileNames[1]))
+		if err != nil {
+			return err
+		}
+		files = append(files, file)
+		fileName := path.Join(remotePath, fileNames[i])
+		err = ctx.client.Store(fileName, file)
+		if err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Store successed")
 	return nil
 }
 
-func (ctx *FTP) delete(fileKey string) (err error) {
-	remotePath := path.Join(ctx.path, fileKey)
-	err = ctx.client.Delete(remotePath)
-	return
+func (ctx *FTP) delete(backupPackage *packager.Package) error {
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
+	fileNames := backupPackage.FileNames()
+
+	var errlist []error
+
+	for i := range fileNames {
+		err := ctx.client.Delete(path.Join(remotePath, fileNames[i]))
+		if err != nil {
+			errlist = append(errlist, err)
+		}
+	}
+
+	if len(errlist) == 0 {
+		err := ctx.client.Rmdir(remotePath)
+		if err != nil {
+			errlist = append(errlist, err)
+		}
+	}
+
+	if len(errlist) > 0 {
+		return verr.NewAggregate(errlist)
+	}
+	return nil
 }

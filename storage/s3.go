@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
+	"github.com/thatique/awan/verr"
 )
 
 // S3 - Amazon S3 storage
@@ -56,36 +57,66 @@ func (ctx *S3) open() (err error) {
 
 func (ctx *S3) close() {}
 
-func (ctx *S3) upload(fileKey string) (err error) {
-	f, err := os.Open(ctx.archivePath)
-	if err != nil {
-		return fmt.Errorf("failed to open file %q, %v", ctx.archivePath, err)
-	}
-
-	remotePath := path.Join(ctx.path, fileKey)
-
-	input := &s3manager.UploadInput{
-		Bucket: aws.String(ctx.bucket),
-		Key:    aws.String(remotePath),
-		Body:   f,
-	}
+func (ctx *S3) upload(backupPackage *packager.Package) (err error) {
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
 
 	logger.Info("-> S3 Uploading...")
-	result, err := ctx.client.Upload(input)
-	if err != nil {
-		return fmt.Errorf("failed to upload file, %v", err)
+
+	fileNames := backupPackage.FileNames()
+
+	// close files
+	var files []*os.File
+	defer func() {
+		for i := range files {
+			files[i].Close()
+		}
+	}()
+
+	for i := range fileNames {
+		src := path.Join(ctx.model.TempPath, fileNames[i])
+		dest := path.Join(remotePath, fileNames[i])
+
+		f, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		files = append(files, f)
+
+		input := &s3manager.UploadInput{
+			Bucket: aws.String(ctx.bucket),
+			Key:    aws.String(dest),
+			Body:   f,
+		}
+
+		result, err := ctx.client.Upload(input)
+		if err != nil {
+			return err
+		}
+		logger.Info("=>", result.Location)
 	}
 
-	logger.Info("=>", result.Location)
 	return nil
 }
 
-func (ctx *S3) delete(fileKey string) (err error) {
-	remotePath := path.Join(ctx.path, fileKey)
-	input := &s3.DeleteObjectInput{
-		Bucket: aws.String(ctx.bucket),
-		Key:    aws.String(remotePath),
+func (ctx *S3) delete(backupPackage *packager.Package) (err error) {
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
+	fileNames := backupPackage.FileNames()
+
+	var errlist []error
+
+	for i := range fileNames {
+		input := &s3.DeleteObjectInput{
+			Bucket: aws.String(ctx.bucket),
+			Key:    aws.String(path.Join(remotePath, fileNames[i])),
+		}
+		_, err = ctx.client.S3.DeleteObject(input)
+		if err != nil {
+			errlist = append(errlist, err)
+		}
 	}
-	_, err = ctx.client.S3.DeleteObject(input)
-	return
+
+	if len(errlist) > 0 {
+		return verr.NewAggregate(errlist)
+	}
+	return nil
 }

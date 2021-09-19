@@ -3,33 +3,45 @@ package storage
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // Base storage
 type Base struct {
-	model       config.ModelConfig
-	archivePath string
-	viper       *viper.Viper
-	keep        int
+	model         config.ModelConfig
+	time          time.Time
+	backupPackage *packager.Package
+	viper         *viper.Viper
+	keep          int
+}
+
+func (b *Base) RemotePath(path string, backupPackage *packager.Package) string {
+	timestr := backupPackage.Time.Format("2006.01.02.15.04.05")
+	if path != "" {
+		return filepath.Join(path, backupPackage.Name, timestr)
+	}
+	return filepath.Join(backupPackage.Name, timestr)
 }
 
 // Context storage interface
 type Context interface {
 	open() error
 	close()
-	upload(fileKey string) error
-	delete(fileKey string) error
+	upload(backupPackage *packager.Package) error
+	delete(backupPackage *packager.Package) error
 }
 
-func newBase(model config.ModelConfig, archivePath string) (base Base) {
+func newBase(model config.ModelConfig, backupPackage *packager.Package) (base Base) {
 	base = Base{
-		model:       model,
-		archivePath: archivePath,
-		viper:       model.StoreWith.Viper,
+		model:         model,
+		time:          time.Now(),
+		backupPackage: backupPackage,
+		viper:         model.StoreWith.Viper,
 	}
 
 	if base.viper != nil {
@@ -40,24 +52,20 @@ func newBase(model config.ModelConfig, archivePath string) (base Base) {
 }
 
 // Run storage
-func Run(model config.ModelConfig, archivePaths []string) (err error) {
+func Run(model config.ModelConfig, backupPackage *packager.Package) (err error) {
 	logger.Info("------------- Storage --------------")
 	logger.Info("=> Storage | " + model.StoreWith.Type)
 
-	for i := range archivePaths {
-		archivePath := archivePaths[i]
-		if err = upload(model, archivePath); err != nil {
-			return
-		}
+	if err = upload(model, backupPackage); err != nil {
+		return
 	}
 
 	logger.Info("------------- Storage --------------\n")
 	return nil
 }
 
-func upload(model config.ModelConfig, archivePath string) (err error) {
-	newFileKey := filepath.Base(archivePath)
-	base := newBase(model, archivePath)
+func upload(model config.ModelConfig, backupPackage *packager.Package) (err error) {
+	base := newBase(model, backupPackage)
 	var ctx Context
 	switch model.StoreWith.Type {
 	case "local":
@@ -80,12 +88,13 @@ func upload(model config.ModelConfig, archivePath string) (err error) {
 	}
 	defer ctx.close()
 
-	err = ctx.upload(newFileKey)
+	err = ctx.upload(backupPackage)
 	if err != nil {
 		return err
 	}
 
 	cycler := Cycler{}
-	cycler.run(model.Name, newFileKey, base.keep, ctx.delete)
+	cycler.run(model.Name, *backupPackage, base.keep, ctx.delete)
+
 	return
 }

@@ -1,10 +1,12 @@
 package archive
 
 import (
+	"bufio"
 	"fmt"
 	"path"
 	"path/filepath"
 
+	"github.com/syaiful6/payung/compressor"
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
@@ -31,20 +33,40 @@ func Run(model config.ModelConfig) (err error) {
 	}
 	logger.Info("=> includes", len(includes), "rules")
 
-	opts := options(model.DumpPath, excludes, includes)
-	helper.Exec("tar", opts...)
+	opts := options(excludes, includes)
+
+	tarCmd, err := helper.CreateCmd("tar", opts...)
+	if err != nil {
+		return err
+	}
+	stdoutPipe, err := tarCmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("-> Can't pipe stdout error: %s", err)
+	}
+	err = tarCmd.Start()
+	if err != nil {
+		return fmt.Errorf("-> can't archive files: %s", err)
+	}
+	archiveFilePath := path.Join(model.DumpPath, "archive.tar")
+	err = compressor.CompressTo(model, bufio.NewReader(stdoutPipe), archiveFilePath)
+	if err != nil {
+		return fmt.Errorf("-> can't compress tar output: %s", err)
+	}
+
+	if err = tarCmd.Wait(); err != nil {
+		return fmt.Errorf("-> archive error: %s", err)
+	}
 
 	logger.Info("------------- Archives -------------\n")
 
 	return nil
 }
 
-func options(dumpPath string, excludes, includes []string) (opts []string) {
-	tarPath := path.Join(dumpPath, "archive.tar")
+func options(excludes, includes []string) (opts []string) {
 	if helper.IsGnuTar {
 		opts = append(opts, "--ignore-failed-read")
 	}
-	opts = append(opts, "-cPf", tarPath)
+	opts = append(opts, "-cPf", "-")
 
 	for _, exclude := range excludes {
 		opts = append(opts, "--exclude="+filepath.Clean(exclude))

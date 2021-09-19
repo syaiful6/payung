@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/syaiful6/payung/helper"
+	"github.com/syaiful6/payung/packager"
 	"golang.org/x/crypto/ssh"
 
 	// "crypto/tls"
@@ -78,36 +79,52 @@ func (ctx *SCP) open() (err error) {
 
 func (ctx *SCP) close() {}
 
-func (ctx *SCP) upload(fileKey string) (err error) {
+func (ctx *SCP) upload(backupPackage *packager.Package) (err error) {
 	err = ctx.client.Connect()
 	if err != nil {
 		return err
 	}
 	defer ctx.client.Session.Close()
 
-	file, err := os.Open(ctx.archivePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
 
-	remotePath := path.Join(ctx.path, fileKey)
-	logger.Info("-> scp", remotePath)
-	ctx.client.CopyFromFile(*file, remotePath, "0655")
+	fileNames := backupPackage.FileNames()
+	// close files
+	var files []*os.File
+	defer func() {
+		for i := range files {
+			files[i].Close()
+		}
+	}()
+
+	for i := range fileNames {
+		src := path.Join(ctx.model.TempPath, fileNames[i])
+		dest := path.Join(remotePath, fileNames[i])
+
+		file, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		files = append(files, file)
+
+		logger.Info("-> scp", dest)
+		ctx.client.CopyFromFile(*file, dest, "0655")
+	}
 
 	logger.Info("Store successed")
 	return nil
 }
 
-func (ctx *SCP) delete(fileKey string) (err error) {
+func (ctx *SCP) delete(backupPackage *packager.Package) (err error) {
 	err = ctx.client.Connect()
 	if err != nil {
 		return
 	}
 	defer ctx.client.Session.Close()
 
-	remotePath := path.Join(ctx.path, fileKey)
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
+
 	logger.Info("-> remove", remotePath)
-	err = ctx.client.Session.Run("rm " + remotePath)
+	err = ctx.client.Session.Run("rm -r " + remotePath)
 	return
 }

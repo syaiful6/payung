@@ -1,11 +1,13 @@
 package database
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/syaiful6/payung/compressor"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
 )
@@ -69,15 +71,35 @@ func (ctx *PostgreSQL) prepare() (err error) {
 }
 
 func (ctx *PostgreSQL) dump() error {
-	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
 	logger.Info("-> Dumping PostgreSQL...")
 	if len(ctx.password) > 0 {
 		os.Setenv("PGPASSWORD", ctx.password)
 	}
-	_, err := helper.Exec(ctx.dumpCommand, "-f", dumpFilePath)
+
+	pgDump, err := helper.CreateCmd(ctx.dumpCommand)
 	if err != nil {
 		return err
 	}
-	logger.Info("dump path:", dumpFilePath)
+	stdoutPipe, err := pgDump.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("-> Can't pipe stdout error: %s", err)
+	}
+
+	err = pgDump.Start()
+	if err != nil {
+		return fmt.Errorf("-> can't start pg_dump error: %s", err)
+	}
+
+	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
+	err = compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe), dumpFilePath)
+	if err != nil {
+		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
+	}
+
+	if err = pgDump.Wait(); err != nil {
+		return fmt.Errorf("-> Dump error: %s", err)
+	}
+
+	logger.Info("dump path:", ctx.dumpPath)
 	return nil
 }

@@ -5,6 +5,8 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
+	"github.com/thatique/awan/verr"
 )
 
 // OSS - Aliyun OSS storage
@@ -81,22 +83,40 @@ func (ctx *OSS) open() (err error) {
 func (ctx *OSS) close() {
 }
 
-func (ctx *OSS) upload(fileKey string) (err error) {
-	remotePath := path.Join(ctx.path, fileKey)
+func (ctx *OSS) upload(backupPackage *packager.Package) (err error) {
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
 
 	logger.Info("-> Uploading OSS...")
-	err = ctx.client.UploadFile(remotePath, ctx.archivePath, ossPartSize, oss.Routines(ctx.threads))
 
-	if err != nil {
-		return err
+	fileNames := backupPackage.FileNames()
+	for i := range fileNames {
+		src := path.Join(ctx.model.TempPath, fileNames[i])
+		dest := path.Join(remotePath, fileNames[i])
+		if err = ctx.client.UploadFile(dest, src, ossPartSize, oss.Routines(ctx.threads)); err != nil {
+			return err
+		}
 	}
+
 	logger.Info("Success")
 
 	return nil
 }
 
-func (ctx *OSS) delete(fileKey string) (err error) {
-	remotePath := path.Join(ctx.path, fileKey)
-	err = ctx.client.DeleteObject(remotePath)
-	return
+func (ctx *OSS) delete(backupPackage *packager.Package) (err error) {
+	remotePath := ctx.RemotePath(ctx.path, backupPackage)
+	fileNames := backupPackage.FileNames()
+
+	var errlist []error
+
+	for i := range fileNames {
+		err := ctx.client.DeleteObject(path.Join(remotePath, fileNames[i]))
+		if err != nil {
+			errlist = append(errlist, err)
+		}
+	}
+
+	if len(errlist) > 0 {
+		return verr.NewAggregate(errlist)
+	}
+	return nil
 }

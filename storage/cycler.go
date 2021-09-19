@@ -5,19 +5,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"time"
 
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
-type PackageList []Package
-
-type Package struct {
-	FileKey   string    `json:"file_key"`
-	CreatedAt time.Time `json:"created_at"`
-}
+type PackageList []packager.Package
 
 var (
 	cyclerPath = path.Join(config.HomeDir, ".gobackup/cycler")
@@ -28,14 +23,11 @@ type Cycler struct {
 	isLoaded bool
 }
 
-func (c *Cycler) add(fileKey string) {
-	c.packages = append(c.packages, Package{
-		FileKey:   fileKey,
-		CreatedAt: time.Now(),
-	})
+func (c *Cycler) add(backup packager.Package) {
+	c.packages = append(c.packages, backup)
 }
 
-func (c *Cycler) shiftByKeep(keep int) (first *Package) {
+func (c *Cycler) shiftByKeep(keep int) (first *packager.Package) {
 	total := len(c.packages)
 	if total <= keep {
 		return nil
@@ -45,11 +37,11 @@ func (c *Cycler) shiftByKeep(keep int) (first *Package) {
 	return
 }
 
-func (c *Cycler) run(model string, fileKey string, keep int, deletePackage func(fileKey string) error) {
+func (c *Cycler) run(model string, backup packager.Package, keep int, deletePackage func(backup *packager.Package) error) {
 	cyclerFileName := path.Join(cyclerPath, model+".json")
 
 	c.load(cyclerFileName)
-	c.add(fileKey)
+	c.add(backup)
 	defer c.save(cyclerFileName)
 
 	if keep == 0 {
@@ -62,7 +54,7 @@ func (c *Cycler) run(model string, fileKey string, keep int, deletePackage func(
 			break
 		}
 
-		err := deletePackage(pkg.FileKey)
+		err := deletePackage(pkg)
 		if err != nil {
 			logger.Warn("remove failed: ", err)
 		}
