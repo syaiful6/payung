@@ -5,6 +5,7 @@ import (
 
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/model"
+	ver "github.com/syaiful6/payung/version"
 	"github.com/urfave/cli"
 )
 
@@ -16,7 +17,7 @@ var (
 	modelName  = ""
 	configFile = ""
 	dumpPath   = ""
-	version    = "master"
+	version    = ver.Version + "+" + ver.Revision
 )
 
 func main() {
