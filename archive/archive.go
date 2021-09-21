@@ -55,9 +55,16 @@ func Run(model config.ModelConfig) (err error) {
 		return fmt.Errorf("-> can't compress tar output: %s", err)
 	}
 	archiveFilePath = archiveFilePath + ext
-	f, err := os.Create(archiveFilePath + ".br")
+	f, err := os.Create(archiveFilePath)
+	if err != nil {
+		return err
+	}
+
 	defer f.Close()
 	_, err = io.Copy(f, r)
+	if err != nil {
+		return err
+	}
 
 	if err = tarCmd.Wait(); err != nil {
 		return fmt.Errorf("-> archive error: %s", err)

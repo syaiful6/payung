@@ -101,9 +101,15 @@ func (ctx *MySQL) dump() error {
 		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
 	}
 	dumpFilePath = dumpFilePath + ext
-	f, err := os.Create(dumpFilePath + ".br")
+	f, err := os.Create(dumpFilePath)
+	if err != nil {
+		return fmt.Errorf("-> rrror: can't create file for database dump: %s", err)
+	}
 	defer f.Close()
 	_, err = io.Copy(f, r)
+	if err != nil {
+		return fmt.Errorf("-> error: can't copy dump output to file: %s", err)
+	}
 
 	if err = mysqldump.Wait(); err != nil {
 		return fmt.Errorf("-> Dump error: %s", err)
