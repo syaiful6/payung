@@ -3,21 +3,29 @@ package compressor
 import (
 	"compress/gzip"
 	"io"
-	"os"
 )
 
 type Gzip struct {
 	Base
 }
 
-func (ctx *Gzip) compressTo(r io.Reader, target string) error {
-	f, err := os.Create(target + ".gz")
+func (ctx *Gzip) compressTo(r io.Reader) (error, string, io.Reader) {
+	ctx.viper.SetDefault("level", gzip.DefaultCompression)
+	level := ctx.viper.GetInt("level")
 
-	if err != nil {
-		return err
-	}
-	w := gzip.NewWriter(f)
-	_, err = io.Copy(w, r)
-	w.Close()
-	return err
+	pr, pw := io.Pipe()
+
+	go func() {
+		w, err := gzip.NewWriterLevel(pw, level)
+		if err != nil {
+			panic(err)
+		}
+		if _, err := io.Copy(w, r); err != nil {
+			panic(err)
+		}
+		w.Close()
+		pw.Close()
+	}()
+
+	return nil, ".gz", pr
 }

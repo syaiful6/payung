@@ -8,18 +8,20 @@ import (
 type Package struct {
 	Name          string    `json:"name"`
 	Time          time.Time `json:"time"`
+	Extension     string    `json:"string"`
 	ChunkSuffixes []string  `json:"chunkSuffixes"`
 }
 
 func NewPackage(name string, packageTime time.Time) *Package {
 	return &Package{
-		Name: name,
-		Time: packageTime,
+		Name:      name,
+		Time:      packageTime,
+		Extension: "tar",
 	}
 }
 
 func (p *Package) BaseName() string {
-	return fmt.Sprintf("%s.tar", p.Name)
+	return fmt.Sprintf("%s.%s", p.Name, p.Extension)
 }
 
 func (p *Package) FileNames() []string {

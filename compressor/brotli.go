@@ -2,7 +2,6 @@ package compressor
 
 import (
 	"io"
-	"os"
 
 	"github.com/andybalholm/brotli"
 )
@@ -11,15 +10,18 @@ type Brotli struct {
 	Base
 }
 
-func (ctx *Brotli) compressTo(r io.Reader, target string) error {
-	f, err := os.Create(target + ".br")
+func (ctx *Brotli) compressTo(r io.Reader) (error, string, io.Reader) {
 	ctx.viper.SetDefault("level", brotli.DefaultCompression)
 	level := ctx.viper.GetInt("level")
-	if err != nil {
-		return err
-	}
-	w := brotli.NewWriterLevel(f, level)
-	_, err = io.Copy(w, r)
-	w.Close()
-	return err
+
+	pr, pw := io.Pipe()
+
+	go func() {
+		w := brotli.NewWriterLevel(pw, level)
+		io.Copy(w, r)
+		w.Close()
+		pw.Close()
+	}()
+
+	return nil, ".br", pr
 }

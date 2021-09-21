@@ -3,6 +3,8 @@ package archive
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"path"
 	"path/filepath"
 
@@ -48,10 +50,14 @@ func Run(model config.ModelConfig) (err error) {
 		return fmt.Errorf("-> can't archive files: %s", err)
 	}
 	archiveFilePath := path.Join(model.DumpPath, "archive.tar")
-	err = compressor.CompressTo(model, bufio.NewReader(stdoutPipe), archiveFilePath)
+	err, ext, r := compressor.CompressTo(model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress tar output: %s", err)
 	}
+	archiveFilePath = archiveFilePath + ext
+	f, err := os.Create(archiveFilePath + ".br")
+	defer f.Close()
+	_, err = io.Copy(f, r)
 
 	if err = tarCmd.Wait(); err != nil {
 		return fmt.Errorf("-> archive error: %s", err)

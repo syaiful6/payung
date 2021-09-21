@@ -2,6 +2,7 @@ package packager
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -19,12 +20,22 @@ type Splitter struct {
 	SuffixLength int
 }
 
-func (s *Splitter) Split() (err error) {
+func (s *Splitter) Split(r io.Reader) (err error) {
 	if s.ChunkSize <= 0 {
 		return nil
 	}
 	logger.Info("------------- Splitter -------------")
-	if _, err = helper.Exec("split", s.options()...); err != nil {
+	splitCmd, err := helper.CreateCmd("split", s.options()...)
+	if err != nil {
+		return err
+	}
+	splitCmd.Stdin = r
+
+	if err = splitCmd.Start(); err != nil {
+		return err
+	}
+
+	if err = splitCmd.Wait(); err != nil {
 		return err
 	}
 
@@ -38,9 +49,9 @@ func (s *Splitter) Split() (err error) {
 }
 
 func (s *Splitter) options() (opts []string) {
-	opts = append(opts, "-b", fmt.Sprintf("%dm", s.ChunkSize))
+	opts = append(opts, "-b", fmt.Sprintf("%dm", s.ChunkSize), "-")
 	filename := filepath.Join(s.Config.TempPath, s.Package.BaseName())
-	opts = append(opts, filename, filename+"-")
+	opts = append(opts, filename+"-")
 
 	return opts
 }

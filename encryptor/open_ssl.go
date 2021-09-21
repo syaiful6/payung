@@ -2,6 +2,7 @@ package encryptor
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/syaiful6/payung/helper"
 )
@@ -18,7 +19,7 @@ type OpenSSL struct {
 	password string
 }
 
-func (ctx *OpenSSL) perform() (encryptPath string, err error) {
+func (ctx *OpenSSL) perform() (io.Reader, string, error) {
 	sslViper := ctx.viper
 	sslViper.SetDefault("salt", true)
 	sslViper.SetDefault("base64", false)
@@ -28,16 +29,36 @@ func (ctx *OpenSSL) perform() (encryptPath string, err error) {
 	ctx.password = sslViper.GetString("password")
 
 	if len(ctx.password) == 0 {
-		err = fmt.Errorf("password option is required")
-		return
+		err := fmt.Errorf("password option is required")
+		return nil, "", err
 	}
 
-	encryptPath = ctx.archivePath + ".enc"
+	pr, pw := io.Pipe()
 
-	opts := ctx.options()
-	opts = append(opts, "-in", ctx.archivePath, "-out", encryptPath)
-	_, err = helper.Exec("openssl", opts...)
-	return
+	go func() {
+		opts := ctx.options()
+		cmd, err := helper.CreateCmd("openssl", opts...)
+		// set the stdin
+		cmd.Stdin = ctx.r
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			panic(err)
+		}
+		if err = cmd.Start(); err != nil {
+			panic(err)
+		}
+
+		if _, err := io.Copy(pw, stdout); err != nil {
+			panic(err)
+		}
+		if err := cmd.Wait(); err != nil {
+			panic(err)
+		}
+		pw.Close()
+	}()
+
+	return pr, ".enc", nil
 }
 
 func (ctx *OpenSSL) options() (opts []string) {

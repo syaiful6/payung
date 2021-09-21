@@ -3,6 +3,7 @@ package database
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -91,10 +92,17 @@ func (ctx *PostgreSQL) dump() error {
 	}
 
 	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
-	err = compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe), dumpFilePath)
+	err, ext, r := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
 	}
+	dumpFilePath = dumpFilePath + ext
+	f, err := os.Create(dumpFilePath + ".br")
+	if err != nil {
+		return fmt.Errorf("-> can't dump to file output: %s", err)
+	}
+	defer f.Close()
+	_, err = io.Copy(f, r)
 
 	if err = pgDump.Wait(); err != nil {
 		return fmt.Errorf("-> Dump error: %s", err)

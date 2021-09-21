@@ -1,7 +1,6 @@
 package compressor
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/spf13/viper"
@@ -15,7 +14,7 @@ type Base struct {
 }
 
 type Compressor interface {
-	compressTo(r io.Reader, target string) error
+	compressTo(r io.Reader) (error, string, io.Reader)
 }
 
 func newBase(model config.ModelConfig) (base Base) {
@@ -26,7 +25,7 @@ func newBase(model config.ModelConfig) (base Base) {
 	return
 }
 
-func CompressTo(model config.ModelConfig, r io.Reader, target string) error {
+func CompressTo(model config.ModelConfig, r io.Reader) (error, string, io.Reader) {
 	base := newBase(model)
 	var ctx Compressor
 	switch model.CompressWith.Type {
@@ -35,8 +34,8 @@ func CompressTo(model config.ModelConfig, r io.Reader, target string) error {
 	case "brotli":
 		ctx = &Brotli{Base: base}
 	default:
-		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
+		return nil, "", r
 	}
 
-	return ctx.compressTo(r, target)
+	return ctx.compressTo(r)
 }

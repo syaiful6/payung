@@ -1,6 +1,8 @@
 package encryptor
 
 import (
+	"io"
+
 	"github.com/spf13/viper"
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/logger"
@@ -8,46 +10,45 @@ import (
 
 // Base encryptor
 type Base struct {
-	model       config.ModelConfig
-	viper       *viper.Viper
-	archivePath string
+	model config.ModelConfig
+	viper *viper.Viper
+	r     io.Reader
 }
 
 // Context encryptor interface
 type Context interface {
-	perform() (encryptPath string, err error)
+	perform() (r io.Reader, ext string, err error)
 }
 
-func newBase(archivePath string, model config.ModelConfig) (base Base) {
+func newBase(r io.Reader, model config.ModelConfig) (base Base) {
 	base = Base{
-		archivePath: archivePath,
-		model:       model,
-		viper:       model.EncryptWith.Viper,
+		r:     r,
+		model: model,
+		viper: model.EncryptWith.Viper,
 	}
 	return
 }
 
 // Run compressor
-func Run(archivePath string, model config.ModelConfig) (encryptPath string, err error) {
-	base := newBase(archivePath, model)
+func Run(r io.Reader, model config.ModelConfig) (io.Reader, string, error) {
+	base := newBase(r, model)
 	var ctx Context
 	switch model.EncryptWith.Type {
 	case "openssl":
 		ctx = &OpenSSL{Base: base}
 	default:
-		encryptPath = archivePath
-		return
+		return r, "", nil
 	}
 
 	logger.Info("------------ Encryptor -------------")
 
 	logger.Info("=> Encrypt | " + model.EncryptWith.Type)
-	encryptPath, err = ctx.perform()
+	r, ext, err := ctx.perform()
 	if err != nil {
-		return
+		return nil, "", err
 	}
-	logger.Info("->", encryptPath)
+
 	logger.Info("------------ Encryptor -------------\n")
 
-	return
+	return r, ext, nil
 }
