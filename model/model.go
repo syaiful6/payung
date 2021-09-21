@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -23,8 +22,8 @@ func (ctx Model) Perform() {
 	serveErr := make(chan error)
 
 	go func() {
-		err := <-ctx.run()
-		serveErr <- err
+		serveErr <- ctx.run()
+		logger.Info("backup terminated")
 	}()
 
 	select {
@@ -40,33 +39,23 @@ func (ctx Model) Perform() {
 }
 
 // Perform model
-func (ctx Model) run() <-chan error {
-	var err error
-	c := make(chan error)
+func (ctx Model) run() (err error) {
 	logger.Info("======== " + ctx.Config.Name + " ========")
 	logger.Info("WorkDir:", ctx.Config.DumpPath+"\n")
 
 	backupPackage := packager.NewPackage(ctx.Config.Name, time.Now())
 
-	defer func() {
-		if r := recover(); r != nil {
-			c <- fmt.Errorf("Command panic")
-		} else {
-			c <- err
-		}
-	}()
-
 	err = database.Run(ctx.Config)
 	if err != nil {
 		logger.Error(err)
-		return c
+		return
 	}
 
 	if ctx.Config.Archive != nil {
 		err = archive.Run(ctx.Config)
 		if err != nil {
 			logger.Error(err)
-			return c
+			return
 		}
 	}
 
@@ -74,16 +63,16 @@ func (ctx Model) run() <-chan error {
 
 	if err = packager.Run(backupPackage); err != nil {
 		logger.Error(err)
-		return c
+		return
 	}
 
 	err = storage.Run(ctx.Config, backupPackage)
 	if err != nil {
 		logger.Error(err)
-		return c
+		return
 	}
 
-	return c
+	return
 }
 
 // Cleanup model temp files
