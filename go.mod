@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.36.1
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bramvdbogaerde/go-scp v0.0.0-20170919175937-e1fc87afa325
+	github.com/dropbox/dropbox-sdk-go-unofficial/v6 v6.0.3
 	github.com/fatih/color v1.10.0
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
