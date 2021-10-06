@@ -8,6 +8,7 @@ import (
 	"github.com/syaiful6/payung/config"
 	"github.com/syaiful6/payung/database"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/notifier"
 	"github.com/syaiful6/payung/packager"
 	"github.com/syaiful6/payung/storage"
 )
@@ -20,21 +21,43 @@ type Model struct {
 func (ctx Model) Perform() {
 	quit := hookSignals()
 	serveErr := make(chan error)
+	var (
+		exitStatus int
+		startedAt  time.Time
+		err        error
+	)
+
+	startedAt = time.Now()
 
 	go func() {
 		serveErr <- ctx.run()
-		logger.Info("backup terminated")
 	}()
 
 	select {
-	case err := <-serveErr:
+	case err = <-serveErr:
 		if err != nil {
 			logger.Error(err)
 		}
 		ctx.cleanup()
+		if err != nil {
+			exitStatus = 1
+		} else {
+			exitStatus = 0
+		}
 	case <-quit:
 		logger.Info("Backup interupted")
+		exitStatus = 2
 		ctx.cleanup()
+	}
+
+	runInfo := config.ModelRunInfo{
+		StartedAt:  startedAt,
+		FinishedAt: time.Now(),
+		ExitStatus: exitStatus,
+	}
+
+	if nerr := notifier.Notify(ctx.Config, runInfo); nerr != nil {
+		logger.Error(nerr)
 	}
 }
 
@@ -42,7 +65,6 @@ func (ctx Model) Perform() {
 func (ctx Model) run() (err error) {
 	logger.Info("======== " + ctx.Config.Name + " ========")
 	logger.Info("WorkDir:", ctx.Config.DumpPath+"\n")
-
 	backupPackage := packager.NewPackage(ctx.Config.Name, time.Now())
 
 	err = database.Run(ctx.Config)

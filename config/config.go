@@ -19,6 +19,15 @@ var (
 	HomeDir = os.Getenv("HOME")
 )
 
+type ModelRunInfo struct {
+	// 0 = Job was successfull
+	// 1 = Job failed
+	// 2 = Job interupted
+	ExitStatus int
+	StartedAt  time.Time
+	FinishedAt time.Time
+}
+
 // ModelConfig for special case
 type ModelConfig struct {
 	Name              string
@@ -31,6 +40,7 @@ type ModelConfig struct {
 	SplitIntoChunksOf int
 	Databases         []SubConfig
 	Storages          []SubConfig
+	Notifiers         []SubConfig
 	Viper             *viper.Viper
 }
 
@@ -42,9 +52,9 @@ type SubConfig struct {
 }
 
 // loadConfig from:
-// - ./gobackup.yml
-// - ~/.gobackup/gobackup.yml
-// - /etc/gobackup/gobackup.yml
+// - ./payung.yml
+// - ~/.payung/payung.yml
+// - /etc/payung/payung.yml
 func Init(configFile string, dumpPath string) {
 	viper.SetConfigType("yaml")
 
@@ -52,19 +62,19 @@ func Init(configFile string, dumpPath string) {
 	if len(configFile) > 0 {
 		viper.SetConfigFile(configFile)
 	} else {
-		viper.SetConfigName("gobackup")
+		viper.SetConfigName("payung")
 
-		// ./gobackup.yml
+		// ./payung.yml
 		viper.AddConfigPath(".")
-		// ~/.gobackup/gobackup.yml
-		viper.AddConfigPath("$HOME/.gobackup") // call multiple times to add many search paths
-		// /etc/gobackup/gobackup.yml
-		viper.AddConfigPath("/etc/gobackup/") // path to look for the config file in
+		// ~/.payung/payung.yml
+		viper.AddConfigPath("$HOME/.payung") // call multiple times to add many search paths
+		// /etc/payung/payung.yml
+		viper.AddConfigPath("/etc/payung/") // path to look for the config file in
 	}
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Load gobackup config faild", err)
+		logger.Error("Load payung config faild", err)
 		return
 	}
 
@@ -80,7 +90,7 @@ func loadModel(key string, dumpPath string) (model ModelConfig) {
 	if dumpPath != "" {
 		model.TempPath = path.Join(dumpPath, fmt.Sprintf("%d", time.Now().UnixNano()))
 	} else {
-		model.TempPath = path.Join(os.TempDir(), "gobackup", fmt.Sprintf("%d", time.Now().UnixNano()))
+		model.TempPath = path.Join(os.TempDir(), "payung", fmt.Sprintf("%d", time.Now().UnixNano()))
 	}
 
 	model.DumpPath = path.Join(model.TempPath, key)
@@ -106,6 +116,7 @@ func loadModel(key string, dumpPath string) (model ModelConfig) {
 
 	loadDatabasesConfig(&model)
 	loadStoragesConfig(&model)
+	loadNotifiersConfig(&model)
 
 	return
 }
@@ -130,6 +141,18 @@ func loadStoragesConfig(model *ModelConfig) {
 			Name:  key,
 			Type:  dbViper.GetString("type"),
 			Viper: dbViper,
+		})
+	}
+}
+
+func loadNotifiersConfig(model *ModelConfig) {
+	subViper := model.Viper.Sub("notify_with")
+	for key := range model.Viper.GetStringMap("notify_with") {
+		notifierViper := subViper.Sub(key)
+		model.Notifiers = append(model.Notifiers, SubConfig{
+			Name:  key,
+			Type:  notifierViper.GetString("type"),
+			Viper: notifierViper,
 		})
 	}
 }
