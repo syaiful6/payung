@@ -58,7 +58,9 @@ func (ctx *Dropbox) upload(backupPackage *packager.Package) (err error) {
 	fileNames := backupPackage.FileNames()
 
 	for i := range fileNames {
-		ctx.uploadFile(remotePath, fileNames[i])
+		if err = ctx.uploadFile(remotePath, fileNames[i]); err != nil {
+			return err
+		}
 	}
 
 	logger.Info("Success")
