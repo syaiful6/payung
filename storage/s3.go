@@ -33,6 +33,7 @@ type S3 struct {
 
 func (ctx *S3) open() (err error) {
 	ctx.viper.SetDefault("region", "us-east-1")
+	ctx.viper.SetDefault("max_retries", 5)
 	cfg := aws.NewConfig()
 	endpoint := ctx.viper.GetString("endpoint")
 	if len(endpoint) > 0 {
