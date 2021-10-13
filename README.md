@@ -98,3 +98,7 @@ We recommend you to perform backups using cron, here are an example configuratio
 ```
 5 0 * * * /usr/local/bin/payung perform -c /home/ubuntu/payung.yml -d /mnt/ebs/backups >> /mnt/ebs/backups/backup.log 2>&1
 ```
+
+### Recommendation
+
+If you use Amazon S3, we recommends to use [AWS S3 object lifecycle](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) instead of our storage lifecycle. You can use it to move the object to Glacier or delete the backups if older than one month.
