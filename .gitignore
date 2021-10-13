@@ -3,5 +3,6 @@
 *.a
 *.so
 *.yml
+!payung-reference.yml
 .DS_Store
 payung
