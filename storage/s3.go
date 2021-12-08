@@ -26,14 +26,16 @@ import (
 // timeout: 300
 type S3 struct {
 	Base
-	bucket string
-	path   string
-	client *s3manager.Uploader
+	bucket       string
+	path         string
+	storageClass string
+	client       *s3manager.Uploader
 }
 
 func (ctx *S3) open() (err error) {
 	ctx.viper.SetDefault("region", "us-east-1")
 	ctx.viper.SetDefault("max_retries", 5)
+	ctx.viper.SetDefault("storage_class", "STANDARD")
 	cfg := aws.NewConfig()
 	endpoint := ctx.viper.GetString("endpoint")
 	if len(endpoint) > 0 {
@@ -49,6 +51,7 @@ func (ctx *S3) open() (err error) {
 
 	ctx.bucket = ctx.viper.GetString("bucket")
 	ctx.path = ctx.viper.GetString("path")
+	ctx.storageClass = ctx.viper.GetString("storage_class")
 
 	sess := session.Must(session.NewSession(cfg))
 	ctx.client = s3manager.NewUploader(sess)
@@ -84,9 +87,10 @@ func (ctx *S3) upload(backupPackage *packager.Package) (err error) {
 		files = append(files, f)
 
 		input := &s3manager.UploadInput{
-			Bucket: aws.String(ctx.bucket),
-			Key:    aws.String(dest),
-			Body:   f,
+			Bucket:       aws.String(ctx.bucket),
+			Key:          aws.String(dest),
+			StorageClass: aws.String(ctx.storageClass),
+			Body:         f,
 		}
 
 		result, err := ctx.client.Upload(input)

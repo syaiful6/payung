@@ -19,13 +19,14 @@ models:
           - success
           - failed
     databases:
-      type: mysql
-      host: localhost
-      port: 3306
-      database: gitlab
-      username: root
-      password: xxxxxx
-      additional_options: --single-transaction --quick --max_allowed_packet=1G
+      gitlab:
+        type: mysql
+        host: localhost
+        port: 3306
+        database: gitlab
+        username: root
+        password: xxxxxx
+        additional_options: --single-transaction --quick --max_allowed_packet=1G
     archive:
       includes:
         - /home/git/.ssh/

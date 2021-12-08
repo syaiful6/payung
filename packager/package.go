@@ -8,7 +8,7 @@ import (
 type Package struct {
 	Name          string    `json:"name"`
 	Time          time.Time `json:"time"`
-	Extension     string    `json:"string"`
+	Extension     string    `json:"extension"`
 	ChunkSuffixes []string  `json:"chunkSuffixes"`
 }
 
