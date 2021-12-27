@@ -33,6 +33,10 @@ func CompressTo(model config.ModelConfig, r io.Reader) (error, string, io.Reader
 		ctx = &Gzip{Base: base}
 	case "brotli":
 		ctx = &Brotli{Base: base}
+	case "snappy":
+		ctx = &Snappy{Base: base}
+	case "zstd":
+		ctx = &ZStandard{Base: base}
 	default:
 		return nil, "", r
 	}

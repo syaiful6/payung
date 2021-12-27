@@ -18,7 +18,9 @@ func (ctx *Brotli) compressTo(r io.Reader) (error, string, io.Reader) {
 
 	go func() {
 		w := brotli.NewWriterLevel(pw, level)
-		io.Copy(w, r)
+		if _, err := io.Copy(w, r); err != nil {
+			panic(err)
+		}
 		w.Close()
 		pw.Close()
 	}()
