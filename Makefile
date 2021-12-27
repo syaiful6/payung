@@ -4,4 +4,4 @@ GO_GCFLAGS :=
 default: build
 
 build:
-	go build -o payung -tags "$(BUILDTAGS)" -ldflags "$(GO_LDFLAGS)" $(GO_GCFLAGS)
+	go build -o payung -tags "$(BUILDTAGS)" -ldflags "$(GO_LDFLAGS)" $(GO_GCFLAGS) ./cmd/payung
