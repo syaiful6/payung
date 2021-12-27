@@ -19,12 +19,12 @@ require (
 	github.com/secsy/goftp v0.0.0-20170729073433-503caa01c039
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
+	github.com/spf13/cobra v0.0.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v0.0.0-20170723055207-25b30aa063fc
 	github.com/stretchr/testify v1.7.0
 	github.com/thatique/awan v0.1.2
-	github.com/urfave/cli v1.22.5
 	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 )
