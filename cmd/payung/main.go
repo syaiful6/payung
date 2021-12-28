@@ -27,7 +27,7 @@ func execute() error {
 		},
 	}
 	rootCmd.AddCommand(performCmd())
-	rootCmd.AddCommand(uncompressCommand())
+	rootCmd.AddCommand(decompressCommand())
 
 	return rootCmd.Execute()
 }

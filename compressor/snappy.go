@@ -1,15 +1,16 @@
 package compressor
 
 import (
-	"github.com/golang/snappy"
 	"io"
+
+	"github.com/golang/snappy"
 )
 
 type Snappy struct {
 	Base
 }
 
-func (ctx *Snappy) compressTo(r io.Reader) (error, string, io.Reader) {
+func (ctx *Snappy) compressTo(r io.Reader) (string, io.Reader, error) {
 	pr, pw := io.Pipe()
 
 	go func() {
@@ -25,5 +26,5 @@ func (ctx *Snappy) compressTo(r io.Reader) (error, string, io.Reader) {
 		pw.Close()
 	}()
 
-	return nil, ".snappy", pr
+	return ".snappy", pr, nil
 }

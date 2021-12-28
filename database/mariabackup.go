@@ -77,7 +77,7 @@ func (ctx *MariaBackup) dump() (err error) {
 		return fmt.Errorf("-> can't start mariabackup error: %s", err)
 	}
 	dumpFilePath := path.Join(ctx.dumpPath, "mariabackup.xb")
-	err, ext, r := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
+	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress mariabackup.xb output: %s", err)
 	}

@@ -50,7 +50,7 @@ func Run(model config.ModelConfig) (err error) {
 		return fmt.Errorf("-> can't archive files: %s", err)
 	}
 	archiveFilePath := path.Join(model.DumpPath, "archive.tar")
-	err, ext, r := compressor.CompressTo(model, bufio.NewReader(stdoutPipe))
+	ext, r, err := compressor.CompressTo(model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress tar output: %s", err)
 	}
