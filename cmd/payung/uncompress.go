@@ -3,12 +3,13 @@ package main
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/andybalholm/brotli"
 	"github.com/golang/snappy"
 	"github.com/klauspost/compress/zstd"
 	"github.com/spf13/cobra"
-	"io"
-	"os"
 )
 
 func uncompressFormat(format string, printToStdout bool, outputFile string, inputFile string) error {
@@ -52,69 +53,27 @@ func uncompressFormat(format string, printToStdout bool, outputFile string, inpu
 	if printToStdout {
 		output = os.Stdout
 	} else if outputFile != "" {
-		outWrite, err := os.Open(outputFile)
+		output, err := os.Open(outputFile)
 		if err != nil {
 			return err
 		}
-		defer outWrite.Close()
-
-		outWrite = outWrite
+		defer output.Close()
 	}
 
 	_, err = io.Copy(output, sr)
 	return err
 }
 
-func uncompressCommand() *cobra.Command {
+func decompressCommand() *cobra.Command {
 	var (
 		printToStdout bool
 		outputFile    string
+		format        string
 	)
 	var uncompressCmd = &cobra.Command{
-		Use:   "uncompress",
-		Short: `Uncompress`,
-		Long:  `Uncompress backup file`,
-		Run: func(cmd *cobra.Command, arg []string) {
-			cmd.Usage()
-		},
-	}
-	var snappyCmd = &cobra.Command{
-		Use:   "snappy",
-		Short: `uncompress snappy`,
-		Long:  `uncompress snappy`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				return uncompressFormat("snappy", printToStdout, outputFile, args[0])
-			}
-			return uncompressFormat("snappy", printToStdout, outputFile, "")
-		},
-	}
-	var zstdCmd = &cobra.Command{
-		Use:   "zstd",
-		Short: `uncompress zstd`,
-		Long:  `uncompress zstd`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				return uncompressFormat("snappy", printToStdout, outputFile, args[0])
-			}
-			return uncompressFormat("snappy", printToStdout, outputFile, "")
-		},
-	}
-	var brotliCmd = &cobra.Command{
-		Use:   "brotli",
-		Short: `uncompress brotli`,
-		Long:  `uncompress brotli`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				return uncompressFormat("snappy", printToStdout, outputFile, args[0])
-			}
-			return uncompressFormat("snappy", printToStdout, outputFile, "")
-		},
-	}
-	var gzipCmd = &cobra.Command{
-		Use:   "gzip",
-		Short: `uncompress gzip`,
-		Long:  `uncompress gzip`,
+		Use:   "decompress",
+		Short: `decompress`,
+		Long:  `decompress backup file`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				return uncompressFormat("snappy", printToStdout, outputFile, args[0])
@@ -123,13 +82,9 @@ func uncompressCommand() *cobra.Command {
 		},
 	}
 
-	uncompressCmd.PersistentFlags().BoolVarP(&printToStdout, "stdout", "c", false, "write on standard output")
-	uncompressCmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "output file; valid only if there is a single input entry")
-
-	uncompressCmd.AddCommand(snappyCmd)
-	uncompressCmd.AddCommand(zstdCmd)
-	uncompressCmd.AddCommand(brotliCmd)
-	uncompressCmd.AddCommand(gzipCmd)
+	uncompressCmd.Flags().StringVarP(&format, "format", "f", "snappy", "The compress format, eg snappy, brotli, zstd or gzip")
+	uncompressCmd.Flags().BoolVarP(&printToStdout, "stdout", "c", false, "write on standard output")
+	uncompressCmd.Flags().StringVarP(&outputFile, "output", "o", "", "output file; valid only if there is a single input entry")
 
 	return uncompressCmd
 }

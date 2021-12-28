@@ -10,7 +10,7 @@ type ZStandard struct {
 	Base
 }
 
-func (ctx *ZStandard) compressTo(r io.Reader) (error, string, io.Reader) {
+func (ctx *ZStandard) compressTo(r io.Reader) (string, io.Reader, error) {
 	ctx.viper.SetDefault("level", 3)
 	level := ctx.viper.GetInt("level")
 	pr, pw := io.Pipe()
@@ -31,5 +31,5 @@ func (ctx *ZStandard) compressTo(r io.Reader) (error, string, io.Reader) {
 		pw.Close()
 	}()
 
-	return nil, ".zstd", pr
+	return ".zst", pr, nil
 }

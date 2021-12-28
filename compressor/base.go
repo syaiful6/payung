@@ -14,7 +14,7 @@ type Base struct {
 }
 
 type Compressor interface {
-	compressTo(r io.Reader) (error, string, io.Reader)
+	compressTo(r io.Reader) (string, io.Reader, error)
 }
 
 func newBase(model config.ModelConfig) (base Base) {
@@ -25,7 +25,7 @@ func newBase(model config.ModelConfig) (base Base) {
 	return
 }
 
-func CompressTo(model config.ModelConfig, r io.Reader) (error, string, io.Reader) {
+func CompressTo(model config.ModelConfig, r io.Reader) (string, io.Reader, error) {
 	base := newBase(model)
 	var ctx Compressor
 	switch model.CompressWith.Type {
@@ -38,7 +38,7 @@ func CompressTo(model config.ModelConfig, r io.Reader) (error, string, io.Reader
 	case "zstd":
 		ctx = &ZStandard{Base: base}
 	default:
-		return nil, "", r
+		return "", r, nil
 	}
 
 	return ctx.compressTo(r)

@@ -96,7 +96,7 @@ func (ctx *MySQL) dump() error {
 	}
 
 	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
-	err, ext, r := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
+	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
 	}
