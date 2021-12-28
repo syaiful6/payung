@@ -26,6 +26,7 @@ func execute() error {
 			cmd.Usage()
 		},
 	}
+	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Print payung's current version")
 	rootCmd.AddCommand(performCmd())
 	rootCmd.AddCommand(decompressCommand())
 

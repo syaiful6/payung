@@ -11,7 +11,7 @@ import (
 //
 // 	<cmd> <project> <version>
 func FprintVersion(w io.Writer) {
-	fmt.Fprintln(w, os.Args[0], Package, Version)
+	fmt.Fprintln(w, os.Args[0], Version, Revision)
 }
 
 // PrintVersion outputs the version information, from Fprint, to stdout.
