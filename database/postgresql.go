@@ -11,6 +11,7 @@ import (
 	"github.com/syaiful6/payung/compressor"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // PostgreSQL database
@@ -31,7 +32,7 @@ type PostgreSQL struct {
 	dumpCommand string
 }
 
-func (ctx PostgreSQL) perform() (err error) {
+func (ctx PostgreSQL) perform(backupPackage *packager.Package) (err error) {
 	viper := ctx.viper
 	viper.SetDefault("host", "localhost")
 	viper.SetDefault("port", 5432)

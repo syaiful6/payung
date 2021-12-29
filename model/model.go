@@ -67,7 +67,7 @@ func (ctx Model) run() (err error) {
 	logger.Info("WorkDir:", ctx.Config.DumpPath+"\n")
 	backupPackage := packager.NewPackage(ctx.Config.Name, time.Now())
 
-	err = database.Run(ctx.Config)
+	err = database.Run(ctx.Config, backupPackage)
 	if err != nil {
 		logger.Error(err)
 		return

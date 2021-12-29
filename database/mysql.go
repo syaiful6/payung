@@ -11,6 +11,7 @@ import (
 	"github.com/syaiful6/payung/compressor"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // MySQL database
@@ -32,7 +33,7 @@ type MySQL struct {
 	additionalOptions []string
 }
 
-func (ctx *MySQL) perform() (err error) {
+func (ctx *MySQL) perform(backupPackage *packager.Package) (err error) {
 	viper := ctx.viper
 	viper.SetDefault("host", "127.0.0.1")
 	viper.SetDefault("username", "root")
