@@ -76,9 +76,9 @@ func decompressCommand() *cobra.Command {
 		Long:  `decompress backup file`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				return uncompressFormat("snappy", printToStdout, outputFile, args[0])
+				return uncompressFormat(format, printToStdout, outputFile, args[0])
 			}
-			return uncompressFormat("snappy", printToStdout, outputFile, "")
+			return uncompressFormat(format, printToStdout, outputFile, "")
 		},
 	}
 
