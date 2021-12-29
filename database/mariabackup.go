@@ -24,12 +24,13 @@ var (
 
 type MariaBackup struct {
 	Base
-	username          string
-	password          string
-	galeraInfo        bool
-	enableIncremental bool
-	additionalOptions []string
-	metadata          *MariaBackupFull
+	username               string
+	password               string
+	galeraInfo             bool
+	enableIncremental      bool
+	additionalOptions      []string
+	incrementalBackupCycle int
+	metadata               *MariaBackupFull
 }
 
 type MariaBackupIncremental struct {
@@ -50,10 +51,12 @@ func (ctx *MariaBackup) perform(backupPackage *packager.Package) (err error) {
 	viper.SetDefault("username", "root")
 	viper.SetDefault("galera_info", false)
 	viper.SetDefault("enable_incremental", false)
+	viper.SetDefault("incremental_backup_cycle", 5)
 
 	ctx.username = viper.GetString("username")
 	ctx.password = viper.GetString("password")
 	ctx.galeraInfo = viper.GetBool("galera_info")
+	ctx.incrementalBackupCycle = viper.GetInt("incremental_backup_cycle")
 	addOpts := viper.GetString("additional_options")
 	if len(addOpts) > 0 {
 		ctx.additionalOptions = strings.Split(addOpts, " ")
@@ -68,7 +71,7 @@ func (ctx *MariaBackup) perform(backupPackage *packager.Package) (err error) {
 func (ctx *MariaBackup) incrementalBackup(backupPackage *packager.Package) error {
 	metadataFileName := path.Join(mariabackupMetadataPath, ctx.name+".json")
 	ctx.metadata = ctx.loadMetadata(metadataFileName)
-	if ctx.metadata != nil && ctx.metadata.Time.Add(time.Hour*24*5).After(time.Now()) {
+	if ctx.metadata != nil && ctx.metadata.Time.Add(time.Hour*24*time.Duration(ctx.incrementalBackupCycle)).After(time.Now()) {
 		// first
 		lsnPath := path.Join(ctx.metadata.LSNPath, backupPackage.Time.Format("2006.01.02.15.04.05"))
 		baseLsn := ctx.metadata.LSNPath
