@@ -6,6 +6,7 @@ import (
 
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // MongoDB database
@@ -33,7 +34,7 @@ var (
 	mongodumpCli = "mongodump"
 )
 
-func (ctx *MongoDB) perform() (err error) {
+func (ctx *MongoDB) perform(backupPackage *packager.Package) (err error) {
 	viper := ctx.viper
 	viper.SetDefault("oplog", false)
 	viper.SetDefault("host", "127.0.0.1")

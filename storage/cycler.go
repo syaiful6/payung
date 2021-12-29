@@ -15,7 +15,7 @@ import (
 type PackageList []packager.Package
 
 var (
-	cyclerPath = path.Join(config.HomeDir, ".gobackup/cycler")
+	cyclerPath = path.Join(config.HomeDir, ".payung/cycler")
 )
 
 type Cycler struct {

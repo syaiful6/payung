@@ -8,6 +8,7 @@ import (
 
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 type redisMode int
@@ -41,7 +42,7 @@ var (
 	redisCliCommand = "redis-cli"
 )
 
-func (ctx *Redis) perform() (err error) {
+func (ctx *Redis) perform(backupPackage *packager.Package) (err error) {
 	viper := ctx.viper
 	viper.SetDefault("rdb_path", "/var/db/redis/dump.rdb")
 	viper.SetDefault("host", "127.0.0.1")
