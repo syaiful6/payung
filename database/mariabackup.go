@@ -71,7 +71,16 @@ func (ctx *MariaBackup) perform(backupPackage *packager.Package) (err error) {
 func (ctx *MariaBackup) incrementalBackup(backupPackage *packager.Package) error {
 	metadataFileName := path.Join(mariabackupMetadataPath, ctx.name+".json")
 	ctx.metadata = ctx.loadMetadata(metadataFileName)
-	if ctx.metadata != nil && ctx.metadata.Time.Add(time.Hour*24*time.Duration(ctx.incrementalBackupCycle)).After(time.Now()) {
+	var (
+		cycleBackupTime  time.Time
+		timeNowTruncated time.Time
+	)
+	if ctx.metadata != nil {
+		cycleBackupTime = ctx.metadata.Time.Add(time.Hour * 24 * time.Duration(ctx.incrementalBackupCycle)).Truncate(time.Second)
+		timeNowTruncated = time.Now().Truncate(time.Second)
+	}
+
+	if ctx.metadata != nil && cycleBackupTime.After(timeNowTruncated) && !cycleBackupTime.Equal(timeNowTruncated) {
 		// first
 		lsnPath := path.Join(ctx.metadata.LSNPath, backupPackage.Time.Format("2006.01.02.15.04.05"))
 		baseLsn := ctx.metadata.LSNPath
