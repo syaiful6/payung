@@ -2,7 +2,10 @@
 *.o
 *.a
 *.so
-*.yml
+payung-local.yml
 !payung-reference.yml
+!.github/goreleaser.yml
 .DS_Store
 /payung
+
+dist/
