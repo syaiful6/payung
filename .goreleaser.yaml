@@ -10,7 +10,7 @@ builds:
   - 
     main: ./cmd/payung
     ldflags:
-      - -s -w -X ./version.Version={{.Version}} -X ./version.Revision={{.Commit}}
+      - -s -w -X github.com/syaiful6/payung/version.Version={{.Version}} -X github.com/syaiful6/payung/version.Revision={{.Commit}}
     env:
       - CGO_ENABLED=0
     goos:
