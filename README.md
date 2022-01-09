@@ -30,11 +30,7 @@ This project has beed forked from [gobackup](https://github.com/huacnlee/gobacku
 
 ## Installation
 
-Currently we don't provides binary release, you need to compile it from source yourself.
-
-- Clone this repository: `git clone https://github.com/syaiful6/payung.git`
-- Build the binary: `make build`
-- Copy the output binary: `payung` to your PATH: `sudo cp payung /usr/local/bin`
+You can download our current build in this repository's [release page](https://github.com/syaiful6/payung/releases) and place executable in your $PATH, ie: `/usr/local/bin/`.
 
 ## Configuration
 
