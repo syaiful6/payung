@@ -1,0 +1,37 @@
+models:
+  gitlab:
+    compress_with:
+      type: brotli
+      level: 8
+    store_with:
+      type: s3
+      bucket: backups
+      region: us-east-1
+      access_key_id: xxxxxx
+      secret_access_key: xxxxxxx
+      max_retries: 5
+    notify_with:
+      slack:
+        type: slack
+        webhook_url: https://hooks.slack.com/services/xxxxx
+        channel: database_backups
+        send_on:
+          - success
+          - failed
+    databases:
+      gitlab:
+        type: mysql
+        host: localhost
+        port: 3306
+        database: gitlab
+        username: root
+        password: xxxxxx
+        additional_options: --single-transaction --quick --max_allowed_packet=1G
+    archive:
+      includes:
+        - /home/git/.ssh/
+        - /etc/mysql/my.conf
+        - /etc/logrotate.d/
+      excludes:
+        - /home/ubuntu/.ssh/known_hosts
+        - /etc/logrotate.d/syslog

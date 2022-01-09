@@ -65,6 +65,10 @@ func (p *Packager) Run(backupPackage *Package) (err error) {
 		}
 	}
 
+	if err = tarCmd.Wait(); err != nil {
+		return err
+	}
+
 	logger.Info("------------ Packaging Complete! -------------")
 	return
 

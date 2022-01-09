@@ -11,6 +11,7 @@ import (
 	"github.com/syaiful6/payung/compressor"
 	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
+	"github.com/syaiful6/payung/packager"
 )
 
 // PostgreSQL database
@@ -31,7 +32,7 @@ type PostgreSQL struct {
 	dumpCommand string
 }
 
-func (ctx PostgreSQL) perform() (err error) {
+func (ctx PostgreSQL) perform(backupPackage *packager.Package) (err error) {
 	viper := ctx.viper
 	viper.SetDefault("host", "localhost")
 	viper.SetDefault("port", 5432)
@@ -92,17 +93,20 @@ func (ctx *PostgreSQL) dump() error {
 	}
 
 	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
-	err, ext, r := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
+	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
 	}
 	dumpFilePath = dumpFilePath + ext
-	f, err := os.Create(dumpFilePath + ".br")
+	f, err := os.Create(dumpFilePath)
 	if err != nil {
 		return fmt.Errorf("-> can't dump to file output: %s", err)
 	}
 	defer f.Close()
 	_, err = io.Copy(f, r)
+	if err != nil {
+		return fmt.Errorf("-> error: can't copy dump output to file: %s", err)
+	}
 
 	if err = pgDump.Wait(); err != nil {
 		return fmt.Errorf("-> Dump error: %s", err)

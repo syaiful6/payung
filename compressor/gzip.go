@@ -9,7 +9,7 @@ type Gzip struct {
 	Base
 }
 
-func (ctx *Gzip) compressTo(r io.Reader) (error, string, io.Reader) {
+func (ctx *Gzip) compressTo(r io.Reader) (string, io.Reader, error) {
 	ctx.viper.SetDefault("level", gzip.DefaultCompression)
 	level := ctx.viper.GetInt("level")
 
@@ -27,5 +27,5 @@ func (ctx *Gzip) compressTo(r io.Reader) (error, string, io.Reader) {
 		pw.Close()
 	}()
 
-	return nil, ".gz", pr
+	return ".gz", pr, nil
 }
