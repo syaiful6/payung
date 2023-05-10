@@ -2,6 +2,7 @@ package database
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -82,6 +83,8 @@ func (ctx *PostgreSQL) dump() error {
 	if err != nil {
 		return err
 	}
+	var errOut bytes.Buffer
+	pgDump.Stderr = &errOut
 	stdoutPipe, err := pgDump.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("-> Can't pipe stdout error: %s", err)
@@ -109,7 +112,7 @@ func (ctx *PostgreSQL) dump() error {
 	}
 
 	if err = pgDump.Wait(); err != nil {
-		return fmt.Errorf("-> Dump error: %s", err)
+		return fmt.Errorf("-> Dump error: %s, stderr: %s", err, errOut.String())
 	}
 
 	logger.Info("dump path:", ctx.dumpPath)

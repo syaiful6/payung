@@ -2,6 +2,7 @@ package database
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -86,6 +87,8 @@ func (ctx *MySQL) dump() error {
 	if err != nil {
 		return fmt.Errorf("-> Create dump command line error: %s", err)
 	}
+	var errOut bytes.Buffer
+	mysqldump.Stderr = &errOut
 	stdoutPipe, err := mysqldump.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("-> Can't pipe stdout error: %s", err)
@@ -113,7 +116,7 @@ func (ctx *MySQL) dump() error {
 	}
 
 	if err = mysqldump.Wait(); err != nil {
-		return fmt.Errorf("-> Dump error: %s", err)
+		return fmt.Errorf("-> Dump error: %s, stderr: %s", err, errOut.String())
 	}
 
 	logger.Info("dump path:", ctx.dumpPath)
