@@ -2,6 +2,7 @@ package database
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -169,6 +170,8 @@ func (ctx *MariaBackup) takeBackup(options []string) error {
 	if err != nil {
 		return fmt.Errorf("-> Create dump command line error: %s", err)
 	}
+	var errOut bytes.Buffer
+	mariabackup.Stderr = &errOut
 	stdoutPipe, err := mariabackup.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("-> Can't pipe stdout error: %s", err)
@@ -176,7 +179,7 @@ func (ctx *MariaBackup) takeBackup(options []string) error {
 
 	err = mariabackup.Start()
 	if err != nil {
-		return fmt.Errorf("-> can't start mariabackup error: %s", err)
+		return fmt.Errorf("-> can't start mariabackup error: %s. stderr: %s", err, errOut.String())
 	}
 	dumpFilePath := path.Join(ctx.dumpPath, "mariabackup.xb")
 	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
@@ -186,7 +189,7 @@ func (ctx *MariaBackup) takeBackup(options []string) error {
 	dumpFilePath = dumpFilePath + ext
 	f, err := os.Create(dumpFilePath)
 	if err != nil {
-		return fmt.Errorf("-> error: can't create file for database dump: %s", err)
+		return fmt.Errorf("-> error: can't create file for database dump: %s, stderr:", err)
 	}
 	defer f.Close()
 	_, err = io.Copy(f, r)
@@ -195,7 +198,7 @@ func (ctx *MariaBackup) takeBackup(options []string) error {
 	}
 
 	if err = mariabackup.Wait(); err != nil {
-		return fmt.Errorf("-> Dump error: %s", err)
+		return fmt.Errorf("-> Dump error: %s, stderr: %s", err, errOut.String())
 	}
 
 	logger.Info("dump path:", ctx.dumpPath)

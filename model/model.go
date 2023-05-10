@@ -88,6 +88,8 @@ func (ctx Model) run() (err error) {
 		return
 	}
 
+	ctx.cleanUpDump()
+
 	err = storage.Run(ctx.Config, backupPackage)
 	if err != nil {
 		logger.Error(err)
@@ -95,6 +97,14 @@ func (ctx Model) run() (err error) {
 	}
 
 	return
+}
+
+func (ctx Model) cleanUpDump() {
+	logger.Info("Cleanup dump folder: " + ctx.Config.DumpPath + "/\n")
+	err := os.RemoveAll(ctx.Config.DumpPath)
+	if err != nil {
+		logger.Error("Cleanup temp dir "+ctx.Config.DumpPath+" error:", err)
+	}
 }
 
 // Cleanup model temp files
