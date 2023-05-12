@@ -23,6 +23,7 @@ import (
 // database: test
 // username:
 // password:
+// additional_options:
 type PostgreSQL struct {
 	Base
 	host        string
@@ -30,7 +31,7 @@ type PostgreSQL struct {
 	database    string
 	username    string
 	password    string
-	dumpCommand string
+	additionalOptions []string
 }
 
 func (ctx PostgreSQL) perform(backupPackage *packager.Package) (err error) {
@@ -44,20 +45,19 @@ func (ctx PostgreSQL) perform(backupPackage *packager.Package) (err error) {
 	ctx.username = viper.GetString("username")
 	ctx.password = viper.GetString("password")
 
-	if err = ctx.prepare(); err != nil {
-		return
+	addOpts := viper.GetString("additional_options")
+	if len(addOpts) > 0 {
+		ctx.additionalOptions = strings.Split(addOpts, " ")
 	}
 
 	err = ctx.dump()
 	return
 }
 
-func (ctx *PostgreSQL) prepare() (err error) {
+func (ctx *PostgreSQL) dumpArgs() []string {
 	// mysqldump command
 	dumpArgs := []string{}
-	if len(ctx.database) == 0 {
-		return fmt.Errorf("PostgreSQL database config is required")
-	}
+
 	if len(ctx.host) > 0 {
 		dumpArgs = append(dumpArgs, "--host="+ctx.host)
 	}
@@ -67,10 +67,13 @@ func (ctx *PostgreSQL) prepare() (err error) {
 	if len(ctx.username) > 0 {
 		dumpArgs = append(dumpArgs, "--username="+ctx.username)
 	}
+	if len(ctx.additionalOptions) > 0 {
+		dumpArgs = append(dumpArgs, ctx.additionalOptions...)
+	}
 
-	ctx.dumpCommand = "pg_dump " + strings.Join(dumpArgs, " ") + " " + ctx.database
+	dumpArgs = append(dumpArgs, "-d", ctx.database)
 
-	return nil
+	return dumpArgs
 }
 
 func (ctx *PostgreSQL) dump() error {
@@ -79,7 +82,7 @@ func (ctx *PostgreSQL) dump() error {
 		os.Setenv("PGPASSWORD", ctx.password)
 	}
 
-	pgDump, err := helper.CreateCmd(ctx.dumpCommand)
+	pgDump, err := helper.CreateCmd("pg_dump", ctx.dumpArgs()...)
 	if err != nil {
 		return err
 	}
@@ -96,9 +99,10 @@ func (ctx *PostgreSQL) dump() error {
 	}
 
 	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
+	
 	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
-		return fmt.Errorf("-> can't compress mysqldump output: %s", err)
+		return fmt.Errorf("-> can't compress pg_dump output: %s", err)
 	}
 	dumpFilePath = dumpFilePath + ext
 	f, err := os.Create(dumpFilePath)
