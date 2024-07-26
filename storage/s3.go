@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"math"
 	"os"
 	"path"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/syaiful6/payung/helper"
 	"github.com/syaiful6/payung/logger"
 	"github.com/syaiful6/payung/packager"
 	"github.com/thatique/awan/verr"
@@ -63,8 +65,8 @@ func (ctx *S3) close() {}
 
 func (ctx *S3) upload(backupPackage *packager.Package) (err error) {
 	remotePath := ctx.RemotePath(ctx.path, backupPackage)
-
-	logger.Info("-> S3 Uploading...")
+	uploadLogger := logger.Tag("Storage S3")
+	uploadLogger.Info("-> S3 Uploading...")
 
 	fileNames := backupPackage.FileNames()
 
@@ -86,17 +88,34 @@ func (ctx *S3) upload(backupPackage *packager.Package) (err error) {
 		}
 		files = append(files, f)
 
+		progress := helper.NewProgressBar(uploadLogger, f)
 		input := &s3manager.UploadInput{
 			Bucket:       aws.String(ctx.bucket),
 			Key:          aws.String(dest),
 			StorageClass: aws.String(ctx.storageClass),
-			Body:         f,
+			Body:         progress.Reader,
 		}
 
-		result, err := ctx.client.Upload(input)
+		result, err := ctx.client.Upload(input, func(uploader *s3manager.Uploader) {
+			// set the part size as low as possible to avoid timeouts and aborts
+			// also set concurrency to 1 for the same reason
+			var partSize int64 = 64 * 1024 * 1024 // 64MiB
+			maxParts := progress.FileLength / partSize
+
+			// 10000 parts is the limit for AWS S3. If the resulting number of parts would exceed that limit, increase the
+			// part size as much as needed but as little possible
+			if maxParts > 10000 {
+				partSize = int64(math.Ceil(float64(progress.FileLength) / 10000))
+			}
+
+			uploader.Concurrency = 1
+			uploader.LeavePartsOnError = false
+			uploader.PartSize = partSize
+		})
 		if err != nil {
-			return err
+			return progress.Errorf("%v", err)
 		}
+		progress.Done(result.Location)
 		logger.Info("=>", result.Location)
 	}
 
