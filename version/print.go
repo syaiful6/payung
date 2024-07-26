@@ -9,7 +9,7 @@ import (
 // FprintVersion outputs the version string to the writer, in the following
 // format, followed by a newline:
 //
-// 	<cmd> <project> <version>
+//	<cmd> <project> <version>
 func FprintVersion(w io.Writer) {
 	fmt.Fprintln(w, os.Args[0], Version, Revision)
 }
