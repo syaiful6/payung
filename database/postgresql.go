@@ -26,11 +26,11 @@ import (
 // additional_options:
 type PostgreSQL struct {
 	Base
-	host        string
-	port        string
-	database    string
-	username    string
-	password    string
+	host              string
+	port              string
+	database          string
+	username          string
+	password          string
 	additionalOptions []string
 }
 
@@ -99,7 +99,7 @@ func (ctx *PostgreSQL) dump() error {
 	}
 
 	dumpFilePath := path.Join(ctx.dumpPath, ctx.database+".sql")
-	
+
 	ext, r, err := compressor.CompressTo(ctx.model, bufio.NewReader(stdoutPipe))
 	if err != nil {
 		return fmt.Errorf("-> can't compress pg_dump output: %s", err)
