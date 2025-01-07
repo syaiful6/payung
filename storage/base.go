@@ -80,6 +80,8 @@ func upload(model config.ModelConfig, backupPackage *packager.Package) (err erro
 		ctx = &OSS{Base: base}
 	case "dropbox":
 		ctx = &Dropbox{Base: base}
+	case "rackspace":
+		ctx = &CloudFiles{Base: base}
 	default:
 		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
 	}
